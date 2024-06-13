@@ -4,10 +4,9 @@ installApps()
 {
     clear
     OS="$REPLY" ## <-- This $REPLY is about OS Selection
-    echo "We can install Docker-CE, Docker-Compose, NGinX Proxy Manager, and Portainer-CE."
+    echo "We can install Docker-CE, Docker-Compose, and Portainer-CE."
     echo "Please select 'y' for each item you would like to install."
-    echo "NOTE: Without Docker you cannot use Docker-Compose, NGinx Proxy Manager, or Portainer-CE."
-    echo "       You also must have Docker-Compose for NGinX Proxy Manager to be installed."
+    echo "NOTE: Without Docker you cannot use Docker-Compose or Portainer-CE."
     echo ""
     echo ""
     
@@ -31,8 +30,6 @@ installApps()
         echo ""
     fi
 
-    read -rp "NGinX Proxy Manager (y/n): " NPM
-    read -rp "Navidrome (y/n): " NAVID
     read -rp "Portainer-CE (y/n): " PTAIN
 
     if [[ "$PTAIN" == [yY] ]]; then
@@ -220,7 +217,7 @@ startInstall()
         ######################################
 
         if [[ "$OS" == "1" ]]; then
-            sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose >> ~/docker-script-install.log 2>&1
+            sudo curl -L "https://github.com/docker/compose/releases/download/latest/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose >> ~/docker-script-install.log 2>&1
 
             sudo chmod +x /usr/local/bin/docker-compose >> ~/docker-script-install.log 2>&1
         fi
@@ -251,171 +248,4 @@ startInstall()
     if [[ "$ISACt" != "active" ]]; then
         echo "Giving the Docker service time to start..."
         while [[ "$ISACT" != "active" ]] && [[ $X -le 10 ]]; do
-            sudo systemctl start docker >> ~/docker-script-install.log 2>&1
-            sleep 10s &
-            pid=$! # Process Id of the previous running command
-            spin='-\|/'
-            i=0
-            while kill -0 $pid 2>/dev/null
-            do
-                i=$(( (i+1) %4 ))
-                printf "\r${spin:$i:1}"
-                sleep .1
-            done
-            printf "\r"
-            ISACT=`sudo systemctl is-active docker`
-            let X=X+1
-            echo "$X"
-        done
-    fi
-
-    if [[ "$NPM" == [yY] ]]; then
-        echo "##########################################"
-        echo "###     Install NGinX Proxy Manager    ###"
-        echo "##########################################"
-    
-        # pull an nginx proxy manager docker-compose file from github
-        echo "    1. Pulling a default NGinX Proxy Manager docker-compose.yml file."
-
-        mkdir -p docker/nginx-proxy-manager
-        cd docker/nginx-proxy-manager
-
-        curl https://gitlab.com/bmcgonag/docker_installs/-/raw/main/docker_compose.nginx_proxy_manager.yml -o docker-compose.yml >> ~/docker-script-install.log 2>&1
-
-        echo "    2. Running the docker-compose.yml to install and start NGinX Proxy Manager"
-        echo ""
-        echo ""
-
-        if [[ "$OS" == "1" ]]; then
-          docker-compose up -d
-        fi
-
-        if [[ "$OS" != "1" ]]; then
-          sudo docker-compose up -d
-        fi
-
-        echo ""
-        echo ""
-        echo "    Navigate to your server hostname / IP address on port 81 to setup"
-        echo "    NGinX Proxy Manager admin account."
-        echo ""
-        echo "    The default login credentials for NGinX Proxy Manager are:"
-        echo "        username: admin@example.com"
-        echo "        password: changeme"
-
-        echo ""       
-        sleep 3s
-        cd
-    fi
-
-    if [[ "$PORT" == "1" ]]; then
-        echo "########################################"
-        echo "###      Installing Portainer-CE     ###"
-        echo "########################################"
-        echo ""
-        echo "    1. Preparing to Install Portainer-CE"
-        echo ""
-        echo ""
-
-        sudo docker volume create portainer_data
-        sudo docker run -d -p 8000:8000 -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce
-        echo ""
-        echo ""
-        echo "    Navigate to your server hostname / IP address on port 9000 and create your admin account for Portainer-CE"
-
-        echo ""
-        echo ""
-        echo ""
-        sleep 3s
-    fi
-
-    if [[ "$PORT" == "2" ]]; then
-        echo "###########################################"
-        echo "###      Installing Portainer Agent     ###"
-        echo "###########################################"
-        echo ""
-        echo "    1. Preparing to install Portainer Agent"
-
-        sudo docker volume create portainer_data
-        sudo docker run -d -p 9001:9001 --name portainer_agent --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker/volumes:/var/lib/docker/volumes portainer/agent
-        echo ""
-        echo ""
-        echo "    From Portainer or Portainer-CE add this Agent instance via the 'Endpoints' option in the left menu."
-        echo "       ####     Use the IP address of this server and port 9001"
-        echo ""
-        echo ""
-        echo ""
-        sleep 3s
-    fi
-
-    if [[ "$NAVID" == [yY] ]]; then
-        echo "###########################################"
-        echo "###        Installing Navidrome         ###"
-        echo "###########################################"
-        echo ""
-        echo "    1. Preparing to install Navidrome"
-
-        mkdir -p docker/navidrome
-        cd docker/navidrome
-
-        curl https://gitlab.com/bmcgonag/docker_installs/-/raw/main/docker_compose_navidrome.yml -o docker-compose.yml >> ~/docker-script-install.log 2>&1
-
-        echo "    2. Running the docker-compose.yml to install and start Navidrome"
-        echo ""
-        echo ""
-
-        if [[ "$OS" == "1" ]]; then
-          docker-compose up -d
-        fi
-
-        if [[ "$OS" != "1" ]]; then
-          sudo docker-compose up -d
-        fi
-
-        echo ""
-        echo ""
-        echo "    Navigate to your server hostname / IP address on port 4533 to setup"
-        echo "    your new Navidrome admin account."
-        echo ""      
-        sleep 3s
-        cd
-    fi
-
-    exit 1
-}
-
-echo ""
-echo ""
-
-clear
-
-echo "Let's figure out which OS / Distro you are running."
-echo ""
-echo ""
-echo "    From some basic information on your system, you appear to be running: "
-echo "        --  OpSys        " $(lsb_release -i)
-echo "        --  Desc:        " $(lsb_release -d)
-echo "        --  OSVer        " $(lsb_release -r)
-echo "        --  CdNme        " $(lsb_release -c)
-echo ""
-echo "------------------------------------------------"
-echo ""
-PS3="Please select the number for your OS / distro: "
-select _ in \
-    "CentOS 7 / 8 / Fedora" \
-    "Debian 10 / 11" \
-    "Ubuntu 18.04" \
-    "Ubuntu 20.04 / 21.04 / 22.04" \
-    "Arch Linux" \
-    "End this Installer"
-do
-  case $REPLY in
-    1) installApps ;;
-    2) installApps ;;
-    3) installApps ;;
-    4) installApps ;;
-    5) installApps ;;
-    6) exit ;;
-    *) echo "Invalid selection, please try again..." ;;
-  esac
-done
+            sudo systemctl
